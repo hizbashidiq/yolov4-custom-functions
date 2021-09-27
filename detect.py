@@ -42,13 +42,7 @@ def main(_argv):
     input_size = FLAGS.size
     images = FLAGS.images
 
-    # load model
-    # if FLAGS.framework == 'tflite':
-    #         interpreter = tf.lite.Interpreter(model_path=FLAGS.weights)
-    # else:
-    a = 0
-    if a == 0:
-            saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
+    saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
 
     # loop through images in list and run Yolov4 model on each
     for count, image_path in enumerate(images, 1):
@@ -67,25 +61,13 @@ def main(_argv):
             images_data.append(image_data)
         images_data = np.asarray(images_data).astype(np.float32)
 
-        # if FLAGS.framework == 'tflite':
-        #     interpreter.allocate_tensors()
-        #     input_details = interpreter.get_input_details()
-        #     output_details = interpreter.get_output_details()
-        #     interpreter.set_tensor(input_details[0]['index'], images_data)
-        #     interpreter.invoke()
-        #     pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
-        #     if FLAGS.model == 'yolov3' and FLAGS.tiny == True:
-        #         boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
-        #     else:
-        #         boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
-        # else:
-        if a == 0:
-            infer = saved_model_loaded.signatures['serving_default']
-            batch_data = tf.constant(images_data)
-            pred_bbox = infer(batch_data)
-            for key, value in pred_bbox.items():
-                boxes = value[:, :, 0:4]
-                pred_conf = value[:, :, 4:]
+       
+        infer = saved_model_loaded.signatures['serving_default']
+        batch_data = tf.constant(images_data)
+        pred_bbox = infer(batch_data)
+        for key, value in pred_bbox.items():
+            boxes = value[:, :, 0:4]
+            pred_conf = value[:, :, 4:]
 
         # run non max suppression on detections
         boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
@@ -123,10 +105,6 @@ def main(_argv):
                 pass
             crop_objects(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB), pred_bbox, crop_path, allowed_classes)
 
-        # if ocr flag is enabled, perform general text extraction using Tesseract OCR on object detection bounding box
-        if FLAGS.ocr:
-            ocr(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB), pred_bbox)
-
         # if count flag is enabled, perform counting of objects
         if FLAGS.count:
             # count objects found
@@ -143,6 +121,7 @@ def main(_argv):
             image.show()
         image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
         cv2.imwrite(FLAGS.output + 'detection' + str(count) + '.png', image)
+
 
 if __name__ == '__main__':
     try:
